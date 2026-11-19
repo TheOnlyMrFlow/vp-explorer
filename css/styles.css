@@ -1,0 +1,260 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --text: #1f1f1d;
+  --text-secondary: #5f5e5a;
+  --neutral: #f1efe8;
+  --surface: #ffffff;
+  --border: rgba(0, 0, 0, 0.14);
+  --border-strong: rgba(0, 0, 0, 0.32);
+  --border-stronger: rgba(0, 0, 0, 0.5);
+  --accent: #185fa5;
+  --radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1f1d;
+    --text: #f1efe8;
+    --text-secondary: #b4b2a9;
+    --neutral: #2c2c2a;
+    --surface: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.16);
+    --border-strong: rgba(255, 255, 255, 0.34);
+    --border-stronger: rgba(255, 255, 255, 0.55);
+    --accent: #85b7eb;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 2rem 0 0.5rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.controls {
+  margin: 1.5rem 0 0;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.control-row label {
+  min-width: 112px;
+}
+
+.control-row input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.control-row output {
+  min-width: 44px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+button {
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--neutral);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+}
+
+.swatch-1 {
+  background: #d85a30;
+}
+
+.swatch-2 {
+  background: #1d9e75;
+}
+
+.swatch-3 {
+  background: #7f77da;
+}
+
+figure {
+  margin: 0 0 8px;
+}
+
+figcaption {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+}
+
+.svg-label {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.frame {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.page-rect {
+  fill: var(--surface);
+  stroke: var(--border-stronger);
+  stroke-width: 1;
+}
+
+.horizon {
+  stroke: var(--border-stronger);
+  stroke-width: 1;
+}
+
+.face {
+  fill: var(--neutral);
+  fill-opacity: 0.7;
+}
+
+.triangle {
+  fill: var(--neutral);
+  fill-opacity: 0.5;
+  stroke: var(--border-strong);
+  stroke-width: 0.8;
+}
+
+.center-mark {
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+  fill: none;
+}
+
+.center-dot {
+  fill: var(--text);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 10px 0 0;
+}
+
+.metric {
+  background: var(--neutral);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.metric p {
+  margin: 0;
+}
+
+.metric-label {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.notes ul {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+}
+
+.notes li {
+  margin: 0 0 0.5rem;
+}

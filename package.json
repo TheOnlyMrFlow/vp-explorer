@@ -1,0 +1,17 @@
+{
+  "name": "vp-explorer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive three-point perspective vanishing point explorer",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "serve": "http-server . -p 8080 -c-1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
