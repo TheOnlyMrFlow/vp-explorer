@@ -12,7 +12,7 @@ const SPIN_STEP_DEGREES = 0.35;
 const FULL_TO_HALF_SIZE_RATIO = 2;
 
 const PRESETS = Object.freeze({
-  'near-one-point': { yaw: 10, tilt: 0, roll: 0, focal: 4 },
+  'one-point': { yaw: 0, tilt: 0, roll: 0, focal: 4 },
   'two-point': { yaw: 35, tilt: 0, roll: 0, focal: 4 },
   'three-point': { yaw: 35, tilt: 35, roll: 0, focal: 4 },
   'wide-angle': { yaw: 35, tilt: 25, roll: 0, focal: 2 },
