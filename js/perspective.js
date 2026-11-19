@@ -8,6 +8,8 @@ export const BOX_DISTANCE_MAX = 14;
 export const BOX_OFFSET_LIMITS = Object.freeze([4, 3]);
 export const BOX_POSITION_STEP = 0.1;
 export const DEFAULT_BOX_POSITION = Object.freeze([0, 0, BOX_DISTANCE]);
+export const DEFAULT_BOX_LEAN = Object.freeze({ away: 0, right: 0 });
+export const BOX_LEAN_LIMIT_DEGREES = 45;
 export const INFINITY_EPSILON = 1e-3;
 export const YAW_PERIOD_DEGREES = 180;
 export const VP_PAIRS = Object.freeze([
@@ -28,32 +30,69 @@ const faceIndex = (axis, sign) => axis * 2 + (sign > 0 ? 1 : 0);
 export const wrapYaw = (degrees) =>
   ((degrees % YAW_PERIOD_DEGREES) + YAW_PERIOD_DEGREES) % YAW_PERIOD_DEGREES;
 
-export function boxAxes(yawDegrees, tiltDegrees, rollDegrees = 0) {
+const tiltPoint = ([x, y, z], degrees) => {
+  const angle = degreesToRadians(degrees);
+  return [
+    x,
+    y * Math.cos(angle) + z * Math.sin(angle),
+    -y * Math.sin(angle) + z * Math.cos(angle),
+  ];
+};
+
+const rollPoint = ([x, y, z], degrees) => {
+  const angle = degreesToRadians(degrees);
+  return [
+    x * Math.cos(angle) - y * Math.sin(angle),
+    x * Math.sin(angle) + y * Math.cos(angle),
+    z,
+  ];
+};
+
+const leanAwayPoint = ([x, y, z], degrees) => {
+  const angle = degreesToRadians(degrees);
+  return [
+    x,
+    y * Math.cos(angle) - z * Math.sin(angle),
+    y * Math.sin(angle) + z * Math.cos(angle),
+  ];
+};
+
+const leanRightPoint = ([x, y, z], degrees) => {
+  const angle = degreesToRadians(degrees);
+  return [
+    x * Math.cos(angle) + y * Math.sin(angle),
+    -x * Math.sin(angle) + y * Math.cos(angle),
+    z,
+  ];
+};
+
+export function cameraUp(tiltDegrees, rollDegrees = 0) {
+  return rollPoint(tiltPoint([0, 1, 0], tiltDegrees), rollDegrees);
+}
+
+export function boxAxes(
+  yawDegrees,
+  tiltDegrees,
+  rollDegrees = 0,
+  lean = DEFAULT_BOX_LEAN,
+) {
   const yaw = degreesToRadians(yawDegrees);
-  const tilt = degreesToRadians(tiltDegrees);
-  const roll = degreesToRadians(rollDegrees);
   const cosYaw = Math.cos(yaw);
   const sinYaw = Math.sin(yaw);
-  const cosTilt = Math.cos(tilt);
-  const sinTilt = Math.sin(tilt);
-  const cosRoll = Math.cos(roll);
-  const sinRoll = Math.sin(roll);
-  const worldAxes = [
+  const uprightAxes = [
     [cosYaw, 0, sinYaw],
     [-sinYaw, 0, cosYaw],
     [0, 1, 0],
   ];
-  const tiltAxis = ([x, y, z]) => [
-    x,
-    y * cosTilt + z * sinTilt,
-    -y * sinTilt + z * cosTilt,
-  ];
-  const rollAxis = ([x, y, z]) => [
-    x * cosRoll - y * sinRoll,
-    x * sinRoll + y * cosRoll,
-    z,
-  ];
-  return worldAxes.map((axis) => rollAxis(tiltAxis(axis)));
+  return uprightAxes.map((axis) =>
+    rollPoint(
+      tiltPoint(
+        leanRightPoint(leanAwayPoint(axis, lean.away), lean.right),
+        tiltDegrees,
+      ),
+      rollDegrees,
+    ),
+  );
 }
 
 export function boxCenter(position = DEFAULT_BOX_POSITION, rollDegrees = 0) {
@@ -150,8 +189,8 @@ export function boxEdges(visibility) {
   return edges;
 }
 
-export function horizonLine(axes, focal) {
-  const [a, b, z] = axes[2];
+export function horizonLine(up, focal) {
+  const [a, b, z] = up;
   return { a, b, c: z * focal };
 }
 
@@ -188,8 +227,9 @@ export function buildScene({
   focal,
   halfSizes = BOX_HALF_SIZES,
   position = DEFAULT_BOX_POSITION,
+  lean = DEFAULT_BOX_LEAN,
 }) {
-  const axes = boxAxes(yaw, tilt, roll);
+  const axes = boxAxes(yaw, tilt, roll, lean);
   const center = boxCenter(position, roll);
   const visibility = faceVisibility(axes, halfSizes, center);
   const points = vanishingPoints(axes, focal);
@@ -197,6 +237,7 @@ export function buildScene({
     yaw,
     tilt,
     roll,
+    lean,
     focal,
     halfSizes,
     position,
@@ -208,7 +249,7 @@ export function buildScene({
     vanishingPoints: points,
     faces: visibleFaces(visibility),
     edges: boxEdges(visibility),
-    horizon: horizonLine(axes, focal),
+    horizon: horizonLine(cameraUp(tilt, roll), focal),
     dotProducts: pairwiseDotProducts(points),
   };
 }

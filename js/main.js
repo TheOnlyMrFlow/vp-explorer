@@ -2,12 +2,14 @@ import {
   BOX_DISTANCE_MAX,
   BOX_DISTANCE_MIN,
   BOX_HALF_SIZES,
+  BOX_LEAN_LIMIT_DEGREES,
   BOX_OFFSET_LIMITS,
   BOX_POSITION_STEP,
   BOX_SIZE_MAX,
   BOX_SIZE_MIN,
   BOX_SIZE_STEP,
   buildScene,
+  DEFAULT_BOX_LEAN,
   DEFAULT_BOX_POSITION,
   wrapYaw,
 } from './perspective.js';
@@ -22,6 +24,7 @@ const PRESETS = Object.freeze({
   'three-point': { yaw: 35, tilt: 35, roll: 0, focal: 4 },
   'wide-angle': { yaw: 35, tilt: 25, roll: 0, focal: 2 },
   'dutch-angle': { yaw: 35, tilt: 20, roll: 15, focal: 4 },
+  'leaning-box': { yaw: 35, tilt: 10, roll: 0, focal: 4, lean: { away: 25, right: 15 } },
 });
 
 const byId = (id) => document.getElementById(id);
@@ -40,6 +43,8 @@ const sizeOutputs = [
   byId('size-height-out'),
 ];
 
+const leanControls = [byId('lean-away'), byId('lean-right')];
+const leanOutputs = [byId('lean-away-out'), byId('lean-right-out')];
 const positionControls = [byId('pos-x'), byId('pos-y'), byId('pos-z')];
 const positionOutputs = [byId('pos-x-out'), byId('pos-y-out'), byId('pos-z-out')];
 const positionLimits = [
@@ -74,6 +79,7 @@ function readState() {
     focal: Number(controls.focal.value),
     halfSizes: sizeControls.map((input) => Number(input.value) / FULL_TO_HALF_SIZE_RATIO),
     position: positionControls.map((input) => Number(input.value)),
+    lean: { away: Number(leanControls[0].value), right: Number(leanControls[1].value) },
   };
 }
 
@@ -81,6 +87,11 @@ function resetSizes() {
   sizeControls.forEach((input, axis) => {
     input.value = BOX_HALF_SIZES[axis] * FULL_TO_HALF_SIZE_RATIO;
   });
+}
+
+function setLean({ away, right }) {
+  leanControls[0].value = away;
+  leanControls[1].value = right;
 }
 
 function resetPosition() {
@@ -95,6 +106,8 @@ function draw() {
   state.halfSizes.forEach((half, axis) => {
     sizeOutputs[axis].textContent = (half * FULL_TO_HALF_SIZE_RATIO).toFixed(1);
   });
+  leanOutputs[0].textContent = `${Math.round(state.lean.away)}°`;
+  leanOutputs[1].textContent = `${Math.round(state.lean.right)}°`;
   state.position.forEach((value, axis) => {
     positionOutputs[axis].textContent = formatNumber(value);
   });
@@ -137,6 +150,7 @@ function applyPreset(name) {
   controls.roll.value = preset.roll;
   controls.focal.value = preset.focal;
   resetPosition();
+  setLean(preset.lean ?? DEFAULT_BOX_LEAN);
   draw();
 }
 
@@ -145,20 +159,26 @@ sizeControls.forEach((input) => {
   input.max = BOX_SIZE_MAX;
   input.step = BOX_SIZE_STEP;
 });
+leanControls.forEach((input) => {
+  input.min = -BOX_LEAN_LIMIT_DEGREES;
+  input.max = BOX_LEAN_LIMIT_DEGREES;
+});
 positionControls.forEach((input, axis) => {
   [input.min, input.max] = positionLimits[axis];
   input.step = BOX_POSITION_STEP;
 });
 resetSizes();
 resetPosition();
+setLean(DEFAULT_BOX_LEAN);
 
-[...Object.values(controls), ...sizeControls, ...positionControls].forEach((input) =>
+[...Object.values(controls), ...sizeControls, ...leanControls, ...positionControls].forEach((input) =>
   input.addEventListener('input', draw),
 );
 
 byId('reset-box').addEventListener('click', () => {
   resetSizes();
   resetPosition();
+  setLean(DEFAULT_BOX_LEAN);
   draw();
 });
 

@@ -17,7 +17,7 @@
       <header>
         <h1>Three-point perspective: vanishing point explorer</h1>
         <p>
-          Rotate and move a box, look up or down, tilt your head and change the focal length. The three
+          Rotate, lean and move a box, look up or down, tilt your head and change the focal length. The three
           vanishing points are not independent: they move together, and the
           readout at the bottom shows the constraint that links them.
         </p>
@@ -30,6 +30,7 @@
           <button type="button" data-preset="three-point">3-point</button>
           <button type="button" data-preset="wide-angle">Wide angle</button>
           <button type="button" data-preset="dutch-angle">Dutch angle</button>
+          <button type="button" data-preset="leaning-box">Leaning box</button>
         </div>
         <details class="control-group" open>
           <summary>Camera</summary>
@@ -39,7 +40,7 @@
             <output id="tilt-out" for="tilt"></output>
           </div>
           <div class="control-row">
-            <label for="roll">Head tilt (roll)</label>
+            <label for="roll">Tilt head (roll)</label>
             <input id="roll" type="range" min="-90" max="90" step="1" value="0" />
             <output id="roll-out" for="roll"></output>
           </div>
@@ -49,25 +50,38 @@
             <output id="focal-out" for="focal"></output>
           </div>
         </details>
-        <details class="control-group" open>
-          <summary>Box</summary>
+        <details class="control-group">
+          <summary>Box orientation</summary>
           <div class="control-row">
-            <label for="yaw">Box yaw</label>
+            <label for="yaw">Spin (yaw)</label>
             <input id="yaw" type="range" min="0" max="180" step="0.1" value="35" />
             <output id="yaw-out" for="yaw"></output>
           </div>
           <div class="control-row">
-            <label for="size-length"><span class="swatch swatch-1"></span>Box length</label>
+            <label for="lean-away">Lean toward / away</label>
+            <input id="lean-away" type="range" min="-45" max="45" step="1" value="0" />
+            <output id="lean-away-out" for="lean-away"></output>
+          </div>
+          <div class="control-row">
+            <label for="lean-right">Lean left / right</label>
+            <input id="lean-right" type="range" min="-45" max="45" step="1" value="0" />
+            <output id="lean-right-out" for="lean-right"></output>
+          </div>
+        </details>
+        <details class="control-group">
+          <summary>Box size</summary>
+          <div class="control-row">
+            <label for="size-length"><span class="swatch swatch-1"></span>Length</label>
             <input id="size-length" type="range" min="0.5" max="4" step="0.1" value="3.2" />
             <output id="size-length-out" for="size-length"></output>
           </div>
           <div class="control-row">
-            <label for="size-width"><span class="swatch swatch-2"></span>Box width</label>
+            <label for="size-width"><span class="swatch swatch-2"></span>Width</label>
             <input id="size-width" type="range" min="0.5" max="4" step="0.1" value="2.4" />
             <output id="size-width-out" for="size-width"></output>
           </div>
           <div class="control-row">
-            <label for="size-height"><span class="swatch swatch-3"></span>Box height</label>
+            <label for="size-height"><span class="swatch swatch-3"></span>Height</label>
             <input id="size-height" type="range" min="0.5" max="4" step="0.1" value="2" />
             <output id="size-height-out" for="size-height"></output>
           </div>
@@ -75,17 +89,17 @@
         <details class="control-group">
           <summary>Box position</summary>
           <div class="control-row">
-            <label for="pos-x">Left / right</label>
+            <label for="pos-x">Move left / right</label>
             <input id="pos-x" type="range" min="-4" max="4" step="0.1" value="0" />
             <output id="pos-x-out" for="pos-x"></output>
           </div>
           <div class="control-row">
-            <label for="pos-y">Up / down</label>
+            <label for="pos-y">Move up / down</label>
             <input id="pos-y" type="range" min="-3" max="3" step="0.1" value="0" />
             <output id="pos-y-out" for="pos-y"></output>
           </div>
           <div class="control-row">
-            <label for="pos-z">Distance</label>
+            <label for="pos-z">Move closer / farther</label>
             <input id="pos-z" type="range" min="4.5" max="14" step="0.1" value="7" />
             <output id="pos-z-out" for="pos-z"></output>
           </div>
@@ -140,7 +154,28 @@
             Tilting your head (roll) rotates the whole picture around P. The
             horizon tilts and the vertical vanishing point leaves the vertical
             line through P, but it stays on the line through P that is
-            perpendicular to the horizon, and every constraint above still holds.
+            perpendicular to the horizon (while the box stands upright), and
+            every constraint above still holds.
+          </li>
+          <li>
+            The horizon is your eye level. It depends only on where the camera
+            looks (look down / up and head tilt), never on the box. A box that
+            stands flat on the ground has horizontal edges that run parallel to
+            the ground, so VP₁ and VP₂ land on the horizon.
+          </li>
+          <li>
+            Use the lean sliders under Box orientation to tip the box over. It no longer stands on the
+            ground, so its edges point in new directions and all three
+            vanishing points move. VP₁ and VP₂ leave the horizon, while the
+            horizon itself stays where it was. This is why the vanishing points
+            of a tipped box in a drawing are not on the horizon line.
+          </li>
+          <li>
+            What never changes is the link between the three vanishing points
+            themselves. The three edges of a box always meet at right angles, so
+            the dot-product rule and the triangle with P as its orthocenter hold
+            for a leaning box too. Only the tie to the horizon needs the box to
+            be upright.
           </li>
           <li>
             Resizing the box never moves the vanishing points. They depend only

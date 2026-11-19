@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  BOX_LEAN_LIMIT_DEGREES,
   BOX_DISTANCE_MAX,
   BOX_DISTANCE_MIN,
   BOX_OFFSET_LIMITS,
@@ -8,8 +9,10 @@ import {
   BOX_SIZE_MIN,
   boxAxes,
   boxCenter,
+  cameraUp,
   boxVertices,
   buildScene,
+  DEFAULT_BOX_LEAN,
   DEFAULT_BOX_POSITION,
   horizonOffset,
   horizonSegment,
@@ -342,6 +345,121 @@ test('rolling the camera rotates a displaced box rigidly around P', () => {
       closeTo(rolled.projected[index].x, expected.x, `roll ${roll} x`);
       closeTo(rolled.projected[index].y, expected.y, `roll ${roll} y`);
     });
+  }
+});
+
+const leanStates = [];
+for (const yaw of [5, 35, 100, 150]) {
+  for (const tilt of [-40, 0, 25]) {
+    for (const roll of [-60, 0, 45]) {
+      for (const away of [-BOX_LEAN_LIMIT_DEGREES, -10, 0, 17, BOX_LEAN_LIMIT_DEGREES]) {
+        for (const right of [-BOX_LEAN_LIMIT_DEGREES, 0, 23, BOX_LEAN_LIMIT_DEGREES]) {
+          leanStates.push({ yaw, tilt, roll, lean: { away, right }, focal: 4 });
+        }
+      }
+    }
+  }
+}
+
+test('a leaning box still has orthonormal axes', () => {
+  for (const { yaw, tilt, roll, lean } of leanStates) {
+    const axes = boxAxes(yaw, tilt, roll, lean);
+    for (let i = 0; i < 3; i += 1) {
+      for (let j = 0; j < 3; j += 1) {
+        const dot = axes[i].reduce((sum, c, k) => sum + c * axes[j][k], 0);
+        closeTo(dot, i === j ? 1 : 0, `axes ${i},${j}`);
+      }
+    }
+  }
+});
+
+test('a leaning box keeps the -f² dot products and the orthocenter at P', () => {
+  let checked = 0;
+  for (const state of leanStates) {
+    const scene = buildScene(state);
+    scene.dotProducts.forEach((dot) => {
+      if (dot === null) return;
+      checked += 1;
+      closeTo(dot, -state.focal * state.focal, JSON.stringify(state));
+    });
+    if (!scene.vanishingPoints.every(Boolean)) continue;
+    const [v1, v2, v3] = scene.vanishingPoints;
+    for (const [apex, a, b] of [[v1, v2, v3], [v2, v1, v3], [v3, v1, v2]]) {
+      closeTo(apex.x * (a.x - b.x) + apex.y * (a.y - b.y), 0, JSON.stringify(state));
+    }
+  }
+  assert.ok(checked > leanStates.length);
+});
+
+test('the horizon depends on the camera only, never on the lean', () => {
+  for (const { yaw, tilt, roll, lean, focal } of leanStates) {
+    const leaning = buildScene({ yaw, tilt, roll, lean, focal });
+    const upright = buildScene({ yaw, tilt, roll, focal });
+    assert.deepEqual(leaning.horizon, upright.horizon);
+    closeTo(horizonOffset(leaning.horizon), focal * Math.tan((tilt * Math.PI) / 180));
+  }
+});
+
+test('the default lean leaves the scene unchanged', () => {
+  const state = { yaw: 35, tilt: 25, roll: 20, focal: 4 };
+  assert.deepEqual(
+    buildScene({ ...state, lean: DEFAULT_BOX_LEAN }).vanishingPoints,
+    buildScene(state).vanishingPoints,
+  );
+});
+
+test('a leaning box has its horizontal vanishing points off the horizon', () => {
+  const upright = buildScene({ yaw: 35, tilt: 10, focal: 4 });
+  const leaning = buildScene({
+    yaw: 35,
+    tilt: 10,
+    focal: 4,
+    lean: { away: 25, right: 15 },
+  });
+  for (const point of upright.vanishingPoints.slice(0, 2)) {
+    closeTo(signedDistanceToHorizon(upright.horizon, point), 0);
+  }
+  for (const point of leaning.vanishingPoints.slice(0, 2)) {
+    assert.ok(Math.abs(signedDistanceToHorizon(leaning.horizon, point)) > 0.1);
+  }
+});
+
+test('leaning away tips the top of the box away and leaning right tips it right', () => {
+  const topWhenLeaningAway = boxAxes(0, 0, 0, { away: 30, right: 0 })[2];
+  assert.ok(topWhenLeaningAway[2] > 0);
+  const topWhenLeaningRight = boxAxes(0, 0, 0, { away: 0, right: 30 })[2];
+  assert.ok(topWhenLeaningRight[0] > 0);
+});
+
+test('rolling the camera rotates a leaning box and its horizon rigidly around P', () => {
+  const lean = { away: 20, right: -15 };
+  for (const roll of sampleRolls) {
+    const level = buildScene({ yaw: 35, tilt: 25, focal: 4, lean });
+    const rolled = buildScene({ yaw: 35, tilt: 25, roll, focal: 4, lean });
+    level.vanishingPoints.forEach((point, axis) => {
+      const expected = rotate(point, roll);
+      closeTo(rolled.vanishingPoints[axis].x, expected.x, `roll ${roll}`);
+      closeTo(rolled.vanishingPoints[axis].y, expected.y, `roll ${roll}`);
+    });
+    closeTo(horizonOffset(rolled.horizon), horizonOffset(level.horizon));
+  }
+});
+
+test('the camera up direction matches the old vertical axis for an upright box', () => {
+  for (const tilt of [-40, 0, 25]) {
+    for (const roll of sampleRolls) {
+      const up = cameraUp(tilt, roll);
+      boxAxes(35, tilt, roll)[2].forEach((value, index) => closeTo(up[index], value));
+    }
+  }
+});
+
+test('every vertex stays in front of the camera for a leaning box at the extremes', () => {
+  const halfSizes = Array(3).fill(BOX_SIZE_MAX / 2);
+  for (const { yaw, tilt, roll, lean } of leanStates) {
+    const axes = boxAxes(yaw, tilt, roll, lean);
+    const vertices = boxVertices(axes, halfSizes, boxCenter([0, 0, BOX_DISTANCE_MIN], roll));
+    assert.ok(vertices.every(([, , z]) => z > 0), JSON.stringify({ yaw, tilt, roll, lean }));
   }
 });
 
