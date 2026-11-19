@@ -21,6 +21,9 @@ const states = [
   { yaw: 35, tilt: 0, roll: 90, focal: 4 },
   { yaw: 35, tilt: 25, roll: -90, focal: 2 },
   { yaw: 10, tilt: -40, roll: 60, focal: 8 },
+  { yaw: 35, tilt: 25, focal: 4, position: [4, 3, 4.5] },
+  { yaw: 0, tilt: 0, focal: 2, position: [-4, -3, 14] },
+  { yaw: 60, tilt: -20, roll: -45, focal: 6, position: [-2, 2, 5] },
 ];
 
 test('the horizon is drawn at every roll, including a vertical one', () => {

@@ -17,7 +17,7 @@
       <header>
         <h1>Three-point perspective: vanishing point explorer</h1>
         <p>
-          Rotate a box, look up or down, tilt your head and change the focal length. The three
+          Rotate and move a box, look up or down, tilt your head and change the focal length. The three
           vanishing points are not independent: they move together, and the
           readout at the bottom shows the constraint that links them.
         </p>
@@ -31,43 +31,67 @@
           <button type="button" data-preset="wide-angle">Wide angle</button>
           <button type="button" data-preset="dutch-angle">Dutch angle</button>
         </div>
-        <div class="control-row">
-          <label for="yaw">Box yaw</label>
-          <input id="yaw" type="range" min="0" max="180" step="0.1" value="35" />
-          <output id="yaw-out" for="yaw"></output>
-        </div>
-        <div class="control-row">
-          <label for="tilt">Look down / up</label>
-          <input id="tilt" type="range" min="-60" max="60" step="1" value="25" />
-          <output id="tilt-out" for="tilt"></output>
-        </div>
-        <div class="control-row">
-          <label for="roll">Head tilt (roll)</label>
-          <input id="roll" type="range" min="-90" max="90" step="1" value="0" />
-          <output id="roll-out" for="roll"></output>
-        </div>
-        <div class="control-row">
-          <label for="focal">Focal length f</label>
-          <input id="focal" type="range" min="2" max="8" step="0.1" value="4" />
-          <output id="focal-out" for="focal"></output>
-        </div>
-        <div class="control-row">
-          <label for="size-length"><span class="swatch swatch-1"></span>Box length</label>
-          <input id="size-length" type="range" min="0.5" max="4" step="0.1" value="3.2" />
-          <output id="size-length-out" for="size-length"></output>
-        </div>
-        <div class="control-row">
-          <label for="size-width"><span class="swatch swatch-2"></span>Box width</label>
-          <input id="size-width" type="range" min="0.5" max="4" step="0.1" value="2.4" />
-          <output id="size-width-out" for="size-width"></output>
-        </div>
-        <div class="control-row">
-          <label for="size-height"><span class="swatch swatch-3"></span>Box height</label>
-          <input id="size-height" type="range" min="0.5" max="4" step="0.1" value="2" />
-          <output id="size-height-out" for="size-height"></output>
-        </div>
+        <details class="control-group" open>
+          <summary>Camera</summary>
+          <div class="control-row">
+            <label for="tilt">Look down / up</label>
+            <input id="tilt" type="range" min="-60" max="60" step="1" value="25" />
+            <output id="tilt-out" for="tilt"></output>
+          </div>
+          <div class="control-row">
+            <label for="roll">Head tilt (roll)</label>
+            <input id="roll" type="range" min="-90" max="90" step="1" value="0" />
+            <output id="roll-out" for="roll"></output>
+          </div>
+          <div class="control-row">
+            <label for="focal">Focal length f</label>
+            <input id="focal" type="range" min="2" max="8" step="0.1" value="4" />
+            <output id="focal-out" for="focal"></output>
+          </div>
+        </details>
+        <details class="control-group" open>
+          <summary>Box</summary>
+          <div class="control-row">
+            <label for="yaw">Box yaw</label>
+            <input id="yaw" type="range" min="0" max="180" step="0.1" value="35" />
+            <output id="yaw-out" for="yaw"></output>
+          </div>
+          <div class="control-row">
+            <label for="size-length"><span class="swatch swatch-1"></span>Box length</label>
+            <input id="size-length" type="range" min="0.5" max="4" step="0.1" value="3.2" />
+            <output id="size-length-out" for="size-length"></output>
+          </div>
+          <div class="control-row">
+            <label for="size-width"><span class="swatch swatch-2"></span>Box width</label>
+            <input id="size-width" type="range" min="0.5" max="4" step="0.1" value="2.4" />
+            <output id="size-width-out" for="size-width"></output>
+          </div>
+          <div class="control-row">
+            <label for="size-height"><span class="swatch swatch-3"></span>Box height</label>
+            <input id="size-height" type="range" min="0.5" max="4" step="0.1" value="2" />
+            <output id="size-height-out" for="size-height"></output>
+          </div>
+        </details>
+        <details class="control-group">
+          <summary>Box position</summary>
+          <div class="control-row">
+            <label for="pos-x">Left / right</label>
+            <input id="pos-x" type="range" min="-4" max="4" step="0.1" value="0" />
+            <output id="pos-x-out" for="pos-x"></output>
+          </div>
+          <div class="control-row">
+            <label for="pos-y">Up / down</label>
+            <input id="pos-y" type="range" min="-3" max="3" step="0.1" value="0" />
+            <output id="pos-y-out" for="pos-y"></output>
+          </div>
+          <div class="control-row">
+            <label for="pos-z">Distance</label>
+            <input id="pos-z" type="range" min="4.5" max="14" step="0.1" value="7" />
+            <output id="pos-z-out" for="pos-z"></output>
+          </div>
+        </details>
         <div class="button-row">
-          <button id="reset-size" type="button">Reset box size</button>
+          <button id="reset-box" type="button">Reset box</button>
           <button id="spin" type="button" aria-pressed="false">Spin box</button>
         </div>
         <ul class="legend">
@@ -121,6 +145,12 @@
           <li>
             Resizing the box never moves the vanishing points. They depend only
             on the directions of its edges, not on its length, width or height.
+          </li>
+          <li>
+            Moving the box left, right, up, down, closer or farther never moves the
+            vanishing points either. It changes which faces you see and how
+            strongly they are foreshortened, but the lines still converge on the
+            same three points.
           </li>
           <li>
             A small f means a wide-angle view with strong distortion. A large f

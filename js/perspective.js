@@ -3,6 +3,11 @@ export const BOX_SIZE_MIN = 0.5;
 export const BOX_SIZE_MAX = 4;
 export const BOX_SIZE_STEP = 0.1;
 export const BOX_DISTANCE = 7;
+export const BOX_DISTANCE_MIN = 4.5;
+export const BOX_DISTANCE_MAX = 14;
+export const BOX_OFFSET_LIMITS = Object.freeze([4, 3]);
+export const BOX_POSITION_STEP = 0.1;
+export const DEFAULT_BOX_POSITION = Object.freeze([0, 0, BOX_DISTANCE]);
 export const INFINITY_EPSILON = 1e-3;
 export const YAW_PERIOD_DEGREES = 180;
 export const VP_PAIRS = Object.freeze([
@@ -51,14 +56,24 @@ export function boxAxes(yawDegrees, tiltDegrees, rollDegrees = 0) {
   return worldAxes.map((axis) => rollAxis(tiltAxis(axis)));
 }
 
+export function boxCenter(position = DEFAULT_BOX_POSITION, rollDegrees = 0) {
+  const roll = degreesToRadians(rollDegrees);
+  const [x, y, distance] = position;
+  return [
+    x * Math.cos(roll) - y * Math.sin(roll),
+    x * Math.sin(roll) + y * Math.cos(roll),
+    distance,
+  ];
+}
+
 export function boxVertices(
   axes,
   halfSizes = BOX_HALF_SIZES,
-  distance = BOX_DISTANCE,
+  center = DEFAULT_BOX_POSITION,
 ) {
   const vertices = [];
   for (let i = 0; i < VERTEX_COUNT; i += 1) {
-    const point = [0, 0, distance];
+    const point = [...center];
     for (let axis = 0; axis < AXIS_COUNT; axis += 1) {
       const extent = cornerSign(i, axis) * halfSizes[axis];
       for (let c = 0; c < 3; c += 1) {
@@ -83,16 +98,16 @@ export function vanishingPoints(axes, focal) {
 export function faceVisibility(
   axes,
   halfSizes = BOX_HALF_SIZES,
-  distance = BOX_DISTANCE,
+  center = DEFAULT_BOX_POSITION,
 ) {
   const visibility = new Array(AXIS_COUNT * 2).fill(false);
   for (let axis = 0; axis < AXIS_COUNT; axis += 1) {
     for (const sign of [-1, 1]) {
       const normal = axes[axis].map((c) => c * sign);
-      const center = [0, 0, distance].map(
+      const faceCenter = center.map(
         (c, i) => c + sign * halfSizes[axis] * axes[axis][i],
       );
-      visibility[faceIndex(axis, sign)] = dot3(normal, center) < 0;
+      visibility[faceIndex(axis, sign)] = dot3(normal, faceCenter) < 0;
     }
   }
   return visibility;
@@ -166,9 +181,17 @@ export function pairwiseDotProducts(points) {
   );
 }
 
-export function buildScene({ yaw, tilt, roll = 0, focal, halfSizes = BOX_HALF_SIZES }) {
+export function buildScene({
+  yaw,
+  tilt,
+  roll = 0,
+  focal,
+  halfSizes = BOX_HALF_SIZES,
+  position = DEFAULT_BOX_POSITION,
+}) {
   const axes = boxAxes(yaw, tilt, roll);
-  const visibility = faceVisibility(axes, halfSizes);
+  const center = boxCenter(position, roll);
+  const visibility = faceVisibility(axes, halfSizes, center);
   const points = vanishingPoints(axes, focal);
   return {
     yaw,
@@ -176,8 +199,10 @@ export function buildScene({ yaw, tilt, roll = 0, focal, halfSizes = BOX_HALF_SI
     roll,
     focal,
     halfSizes,
+    position,
+    center,
     axes,
-    projected: boxVertices(axes, halfSizes).map((vertex) =>
+    projected: boxVertices(axes, halfSizes, center).map((vertex) =>
       projectPoint(vertex, focal),
     ),
     vanishingPoints: points,

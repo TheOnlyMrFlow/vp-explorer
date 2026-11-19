@@ -70,6 +70,53 @@ code {
   margin: 1.5rem 0 0;
 }
 
+.control-group {
+  margin: 0 0 12px;
+}
+
+.control-group summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.control-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.control-group summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+.control-group[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.control-group summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control-group summary::before {
+    transition: none;
+  }
+}
+
 .control-row {
   display: flex;
   align-items: center;

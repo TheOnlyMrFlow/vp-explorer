@@ -1,11 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  BOX_DISTANCE_MAX,
+  BOX_DISTANCE_MIN,
+  BOX_OFFSET_LIMITS,
   BOX_SIZE_MAX,
   BOX_SIZE_MIN,
   boxAxes,
+  boxCenter,
   boxVertices,
   buildScene,
+  DEFAULT_BOX_POSITION,
   horizonOffset,
   horizonSegment,
   VP_PAIRS,
@@ -262,6 +267,81 @@ test('every vertex stays in front of the camera at the largest box size', () => 
   for (const { yaw, tilt, roll } of sampleStates) {
     const axes = boxAxes(yaw, tilt, roll);
     assert.ok(boxVertices(axes, halfSizes).every(([, , z]) => z > 0));
+  }
+});
+
+const extremePositions = [];
+for (const x of [-BOX_OFFSET_LIMITS[0], 0, BOX_OFFSET_LIMITS[0]]) {
+  for (const y of [-BOX_OFFSET_LIMITS[1], 0, BOX_OFFSET_LIMITS[1]]) {
+    for (const distance of [BOX_DISTANCE_MIN, 7, BOX_DISTANCE_MAX]) {
+      extremePositions.push([x, y, distance]);
+    }
+  }
+}
+
+test('the default position leaves the scene unchanged', () => {
+  const state = { yaw: 35, tilt: 25, roll: 20, focal: 4 };
+  assert.deepEqual(
+    buildScene({ ...state, position: DEFAULT_BOX_POSITION }).projected,
+    buildScene(state).projected,
+  );
+});
+
+test('box position does not move the vanishing points, the horizon or the dot products', () => {
+  for (const state of sampleStates) {
+    const reference = buildScene(state);
+    for (const position of extremePositions) {
+      const moved = buildScene({ ...state, position });
+      assert.deepEqual(moved.vanishingPoints, reference.vanishingPoints);
+      assert.deepEqual(moved.horizon, reference.horizon);
+      assert.deepEqual(moved.dotProducts, reference.dotProducts);
+    }
+  }
+});
+
+test('box position changes the projected corners', () => {
+  const state = { yaw: 35, tilt: 25, focal: 4 };
+  assert.notDeepEqual(
+    buildScene({ ...state, position: [2, 1, 7] }).projected,
+    buildScene(state).projected,
+  );
+});
+
+test('the nearest allowed distance clears the largest box in any orientation', () => {
+  const largestRadius = (BOX_SIZE_MAX / 2) * Math.sqrt(3);
+  assert.ok(BOX_DISTANCE_MIN > largestRadius);
+});
+
+test('every vertex stays in front of the camera at every extreme position and the largest size', () => {
+  const halfSizes = Array(3).fill(BOX_SIZE_MAX / 2);
+  for (const { yaw, tilt, roll } of sampleStates) {
+    const axes = boxAxes(yaw, tilt, roll);
+    for (const position of extremePositions) {
+      const vertices = boxVertices(axes, halfSizes, boxCenter(position, roll));
+      assert.ok(vertices.every(([, , z]) => z > 0), JSON.stringify({ yaw, tilt, roll, position }));
+    }
+  }
+});
+
+test('moving a face-on box sideways or vertically reveals more faces', () => {
+  const state = { yaw: 0, tilt: 0, focal: 4 };
+  assert.equal(buildScene(state).faces.length, 1);
+  assert.equal(buildScene({ ...state, position: [3, 0, 7] }).faces.length, 2);
+  assert.equal(buildScene({ ...state, position: [-3, 0, 7] }).faces.length, 2);
+  assert.equal(buildScene({ ...state, position: [0, 3, 7] }).faces.length, 2);
+  assert.equal(buildScene({ ...state, position: [3, 3, 7] }).faces.length, 3);
+});
+
+test('rolling the camera rotates a displaced box rigidly around P', () => {
+  const position = [2.5, -1.5, 6];
+  for (const roll of sampleRolls) {
+    const level = buildScene({ yaw: 35, tilt: 25, focal: 4, position });
+    const rolled = buildScene({ yaw: 35, tilt: 25, roll, focal: 4, position });
+    level.projected.forEach((corner, index) => {
+      const expected = rotate(corner, roll);
+      closeTo(rolled.projected[index].x, expected.x, `roll ${roll} x`);
+      closeTo(rolled.projected[index].y, expected.y, `roll ${roll} y`);
+    });
   }
 });
 

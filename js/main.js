@@ -1,12 +1,17 @@
 import {
+  BOX_DISTANCE_MAX,
+  BOX_DISTANCE_MIN,
   BOX_HALF_SIZES,
+  BOX_OFFSET_LIMITS,
+  BOX_POSITION_STEP,
   BOX_SIZE_MAX,
   BOX_SIZE_MIN,
   BOX_SIZE_STEP,
   buildScene,
+  DEFAULT_BOX_POSITION,
   wrapYaw,
 } from './perspective.js';
-import { renderOverview, renderPageView, renderReadout } from './render.js';
+import { formatNumber, renderOverview, renderPageView, renderReadout } from './render.js';
 
 const SPIN_STEP_DEGREES = 0.35;
 const FULL_TO_HALF_SIZE_RATIO = 2;
@@ -35,6 +40,14 @@ const sizeOutputs = [
   byId('size-height-out'),
 ];
 
+const positionControls = [byId('pos-x'), byId('pos-y'), byId('pos-z')];
+const positionOutputs = [byId('pos-x-out'), byId('pos-y-out'), byId('pos-z-out')];
+const positionLimits = [
+  [-BOX_OFFSET_LIMITS[0], BOX_OFFSET_LIMITS[0]],
+  [-BOX_OFFSET_LIMITS[1], BOX_OFFSET_LIMITS[1]],
+  [BOX_DISTANCE_MIN, BOX_DISTANCE_MAX],
+];
+
 const outputs = {
   yaw: byId('yaw-out'),
   tilt: byId('tilt-out'),
@@ -60,6 +73,7 @@ function readState() {
     roll: Number(controls.roll.value),
     focal: Number(controls.focal.value),
     halfSizes: sizeControls.map((input) => Number(input.value) / FULL_TO_HALF_SIZE_RATIO),
+    position: positionControls.map((input) => Number(input.value)),
   };
 }
 
@@ -69,11 +83,20 @@ function resetSizes() {
   });
 }
 
+function resetPosition() {
+  positionControls.forEach((input, axis) => {
+    input.value = DEFAULT_BOX_POSITION[axis];
+  });
+}
+
 function draw() {
   const state = readState();
   const scene = buildScene(state);
   state.halfSizes.forEach((half, axis) => {
     sizeOutputs[axis].textContent = (half * FULL_TO_HALF_SIZE_RATIO).toFixed(1);
+  });
+  state.position.forEach((value, axis) => {
+    positionOutputs[axis].textContent = formatNumber(value);
   });
   outputs.yaw.textContent = `${Math.round(state.yaw)}°`;
   outputs.tilt.textContent = `${Math.round(state.tilt)}°`;
@@ -113,6 +136,7 @@ function applyPreset(name) {
   controls.tilt.value = preset.tilt;
   controls.roll.value = preset.roll;
   controls.focal.value = preset.focal;
+  resetPosition();
   draw();
 }
 
@@ -121,14 +145,20 @@ sizeControls.forEach((input) => {
   input.max = BOX_SIZE_MAX;
   input.step = BOX_SIZE_STEP;
 });
+positionControls.forEach((input, axis) => {
+  [input.min, input.max] = positionLimits[axis];
+  input.step = BOX_POSITION_STEP;
+});
 resetSizes();
+resetPosition();
 
-[...Object.values(controls), ...sizeControls].forEach((input) =>
+[...Object.values(controls), ...sizeControls, ...positionControls].forEach((input) =>
   input.addEventListener('input', draw),
 );
 
-byId('reset-size').addEventListener('click', () => {
+byId('reset-box').addEventListener('click', () => {
   resetSizes();
+  resetPosition();
   draw();
 });
 

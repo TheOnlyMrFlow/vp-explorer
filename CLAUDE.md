@@ -24,7 +24,7 @@ Deploy only `index.html`, `css/` and `js/`.
 ## Model and conventions
 
 - Camera at the origin looking along +z. Picture plane at z = f. Picture coordinates have the center of vision P at (0, 0), +x right, +y up.
-- The box is centered at (0, 0, `BOX_DISTANCE`). Its axes are ordered `[length, width, vertical]`, which map to VP₁, VP₂, VP₃ and to the colors in `AXIS_COLORS`.
+- The box center is `position` = [x, y, distance], default `DEFAULT_BOX_POSITION` = (0, 0, `BOX_DISTANCE`). The x and y offset is rotated by the roll (`boxCenter`), so left/right runs along the horizon and roll stays a rigid rotation of the whole picture about P. Tilt is not applied to the position: it only orients the box. Sliders: x within ±`BOX_OFFSET_LIMITS[0]`, y within ±`BOX_OFFSET_LIMITS[1]`, distance in `BOX_DISTANCE_MIN` to `BOX_DISTANCE_MAX`; the minimum clears the largest box in any orientation. Its axes are ordered `[length, width, vertical]`, which map to VP₁, VP₂, VP₃ and to the colors in `AXIS_COLORS`.
 - `boxAxes(yaw, tilt, roll)`: yaw (0° to 180°, wrapped by `wrapYaw`) spins the box about the vertical axis. The box looks the same after a half turn, so 180° is the full period of the picture and the spin loops seamlessly at that point. Positive tilt means the camera looks down, which puts VP₃ below P. Roll (default 0, slider −90° to 90°) is applied last, as a counter-clockwise rotation of the picture about P, so it rotates every VP, the horizon and the box rigidly. With roll 0 the horizon is horizontal and VP₃ lies on the vertical line through P. With roll the horizon tilts by the roll angle and VP₃ stays on the line through P perpendicular to the horizon.
 - Vertex index bit k is the sign of axis k (1 means positive). Face index is `axis * 2 + (sign > 0 ? 1 : 0)`.
 - A VP is `null` when `|axis.z| < INFINITY_EPSILON`. Renderers must handle `null` by drawing "at infinity" using the axis direction.
@@ -43,6 +43,7 @@ Do not weaken a test to make a change pass. Change a test only when the model it
 - Rolling the camera rotates every VP rigidly about P, the horizon passes through VP₁ and VP₂, and a roll of 90° gives a vertical horizon. The horizon is drawn from `horizonSegment` (a point and a direction), never as y(x).
 - A generic orientation shows 3 faces and 9 visible edges. A face-on box shows 1 face.
 - Box size never moves the VPs, the horizon or the dot products. `buildScene` takes optional `halfSizes` (default `BOX_HALF_SIZES`); the sliders show full sizes in `BOX_SIZE_MIN` to `BOX_SIZE_MAX`, and every vertex stays in front of the camera at the maximum.
+- Box position never moves the VPs, the horizon or the dot products, but it does change the corners and which faces are visible (a face-on box shows 2 faces when moved sideways, 3 when moved diagonally). Every vertex stays in front of the camera at every extreme position and the largest size.
 - Rendered markup never contains `NaN`, `undefined` or `Infinity`, and never prints `-0.0`.
 
 ## Code rules
