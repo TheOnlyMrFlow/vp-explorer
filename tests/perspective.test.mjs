@@ -4,6 +4,7 @@ import {
   BOX_LEAN_LIMIT_DEGREES,
   BOX_DISTANCE_MAX,
   BOX_DISTANCE_MIN,
+  BOX_HALF_SIZES,
   BOX_OFFSET_LIMITS,
   BOX_SIZE_MAX,
   BOX_SIZE_MIN,
@@ -14,8 +15,10 @@ import {
   buildScene,
   DEFAULT_BOX_LEAN,
   DEFAULT_BOX_POSITION,
+  FOCAL_MIN,
   horizonOffset,
   horizonSegment,
+  minBoxDistance,
   VP_PAIRS,
   wrapYaw,
   YAW_PERIOD_DEGREES,
@@ -33,7 +36,7 @@ const sampleRolls = [-90, -40, 0, 30, 90];
 for (const yaw of [5, 35, 80, 100, 135, 170]) {
   for (const tilt of [-50, -20, 10, 30, 55]) {
     for (const roll of sampleRolls) {
-      for (const focal of [2, 4, 7.5]) {
+      for (const focal of [FOCAL_MIN, 2, 4, 7.5]) {
         sampleStates.push({ yaw, tilt, roll, focal });
       }
     }
@@ -273,14 +276,18 @@ test('every vertex stays in front of the camera at the largest box size', () => 
   }
 });
 
-const extremePositions = [];
-for (const x of [-BOX_OFFSET_LIMITS[0], 0, BOX_OFFSET_LIMITS[0]]) {
-  for (const y of [-BOX_OFFSET_LIMITS[1], 0, BOX_OFFSET_LIMITS[1]]) {
-    for (const distance of [BOX_DISTANCE_MIN, 7, BOX_DISTANCE_MAX]) {
-      extremePositions.push([x, y, distance]);
+const extremePositionsFor = (halfSizes) => {
+  const positions = [];
+  for (const x of [-BOX_OFFSET_LIMITS[0], 0, BOX_OFFSET_LIMITS[0]]) {
+    for (const y of [-BOX_OFFSET_LIMITS[1], 0, BOX_OFFSET_LIMITS[1]]) {
+      for (const distance of [minBoxDistance(halfSizes), 7, BOX_DISTANCE_MAX]) {
+        positions.push([x, y, distance]);
+      }
     }
   }
-}
+  return positions;
+};
+const extremePositions = extremePositionsFor(BOX_HALF_SIZES);
 
 test('the default position leaves the scene unchanged', () => {
   const state = { yaw: 35, tilt: 25, roll: 20, focal: 4 };
@@ -310,18 +317,36 @@ test('box position changes the projected corners', () => {
   );
 });
 
-test('the nearest allowed distance clears the largest box in any orientation', () => {
-  const largestRadius = (BOX_SIZE_MAX / 2) * Math.sqrt(3);
-  assert.ok(BOX_DISTANCE_MIN > largestRadius);
+test('the nearest allowed distance clears the box in any orientation', () => {
+  for (const halfSizes of sampleHalfSizes) {
+    assert.ok(minBoxDistance(halfSizes) > Math.hypot(...halfSizes), JSON.stringify(halfSizes));
+  }
+});
+
+test('the nearest allowed distance never drops below the floor and grows with the box', () => {
+  const smallest = Array(3).fill(BOX_SIZE_MIN / 2);
+  const largest = Array(3).fill(BOX_SIZE_MAX / 2);
+  assert.equal(minBoxDistance(smallest), BOX_DISTANCE_MIN);
+  assert.ok(minBoxDistance(largest) > minBoxDistance(BOX_HALF_SIZES));
+  assert.ok(minBoxDistance(largest) < BOX_DISTANCE_MAX);
+});
+
+test('the default box distance is allowed at the largest size', () => {
+  const largest = Array(3).fill(BOX_SIZE_MAX / 2);
+  assert.ok(DEFAULT_BOX_POSITION[2] >= minBoxDistance(largest));
 });
 
 test('every vertex stays in front of the camera at every extreme position and the largest size', () => {
-  const halfSizes = Array(3).fill(BOX_SIZE_MAX / 2);
-  for (const { yaw, tilt, roll } of sampleStates) {
-    const axes = boxAxes(yaw, tilt, roll);
-    for (const position of extremePositions) {
-      const vertices = boxVertices(axes, halfSizes, boxCenter(position, roll));
-      assert.ok(vertices.every(([, , z]) => z > 0), JSON.stringify({ yaw, tilt, roll, position }));
+  for (const halfSizes of sampleHalfSizes) {
+    for (const { yaw, tilt, roll } of sampleStates) {
+      const axes = boxAxes(yaw, tilt, roll);
+      for (const position of extremePositionsFor(halfSizes)) {
+        const vertices = boxVertices(axes, halfSizes, boxCenter(position, roll));
+        assert.ok(
+          vertices.every(([, , z]) => z > 0),
+          JSON.stringify({ halfSizes, yaw, tilt, roll, position }),
+        );
+      }
     }
   }
 });
@@ -458,7 +483,8 @@ test('every vertex stays in front of the camera for a leaning box at the extreme
   const halfSizes = Array(3).fill(BOX_SIZE_MAX / 2);
   for (const { yaw, tilt, roll, lean } of leanStates) {
     const axes = boxAxes(yaw, tilt, roll, lean);
-    const vertices = boxVertices(axes, halfSizes, boxCenter([0, 0, BOX_DISTANCE_MIN], roll));
+    const nearest = minBoxDistance(halfSizes);
+    const vertices = boxVertices(axes, halfSizes, boxCenter([0, 0, nearest], roll));
     assert.ok(vertices.every(([, , z]) => z > 0), JSON.stringify({ yaw, tilt, roll, lean }));
   }
 });

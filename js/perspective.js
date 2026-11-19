@@ -3,10 +3,14 @@ export const BOX_SIZE_MIN = 0.5;
 export const BOX_SIZE_MAX = 4;
 export const BOX_SIZE_STEP = 0.1;
 export const BOX_DISTANCE = 7;
-export const BOX_DISTANCE_MIN = 4.5;
+export const BOX_DISTANCE_MIN = 1;
+export const BOX_DISTANCE_CLEARANCE = 0.1;
 export const BOX_DISTANCE_MAX = 14;
 export const BOX_OFFSET_LIMITS = Object.freeze([4, 3]);
 export const BOX_POSITION_STEP = 0.1;
+export const FOCAL_MIN = 0.5;
+export const FOCAL_MAX = 8;
+export const FOCAL_STEP = 0.1;
 export const DEFAULT_BOX_POSITION = Object.freeze([0, 0, BOX_DISTANCE]);
 export const DEFAULT_BOX_LEAN = Object.freeze({ away: 0, right: 0 });
 export const BOX_LEAN_LIMIT_DEGREES = 45;
@@ -21,6 +25,8 @@ export const VP_PAIRS = Object.freeze([
 const AXIS_COUNT = 3;
 const VERTEX_COUNT = 8;
 const HORIZON_EPSILON = 1e-9;
+const STEP_ROUNDING_TOLERANCE = 1e-9;
+const POSITION_DECIMALS = 1;
 
 const degreesToRadians = (degrees) => (degrees * Math.PI) / 180;
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -93,6 +99,13 @@ export function boxAxes(
       rollDegrees,
     ),
   );
+}
+
+export function minBoxDistance(halfSizes = BOX_HALF_SIZES) {
+  const boundingRadius = Math.hypot(...halfSizes);
+  const clearDistance = boundingRadius + BOX_DISTANCE_CLEARANCE;
+  const steps = Math.ceil(clearDistance / BOX_POSITION_STEP - STEP_ROUNDING_TOLERANCE);
+  return Math.max(BOX_DISTANCE_MIN, Number((steps * BOX_POSITION_STEP).toFixed(POSITION_DECIMALS)));
 }
 
 export function boxCenter(position = DEFAULT_BOX_POSITION, rollDegrees = 0) {

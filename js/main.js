@@ -1,6 +1,5 @@
 import {
   BOX_DISTANCE_MAX,
-  BOX_DISTANCE_MIN,
   BOX_HALF_SIZES,
   BOX_LEAN_LIMIT_DEGREES,
   BOX_OFFSET_LIMITS,
@@ -11,6 +10,10 @@ import {
   buildScene,
   DEFAULT_BOX_LEAN,
   DEFAULT_BOX_POSITION,
+  FOCAL_MAX,
+  FOCAL_MIN,
+  FOCAL_STEP,
+  minBoxDistance,
   wrapYaw,
 } from './perspective.js';
 import { formatNumber, renderOverview, renderPageView, renderReadout } from './render.js';
@@ -47,10 +50,11 @@ const leanControls = [byId('lean-away'), byId('lean-right')];
 const leanOutputs = [byId('lean-away-out'), byId('lean-right-out')];
 const positionControls = [byId('pos-x'), byId('pos-y'), byId('pos-z')];
 const positionOutputs = [byId('pos-x-out'), byId('pos-y-out'), byId('pos-z-out')];
+const DISTANCE_AXIS = 2;
 const positionLimits = [
   [-BOX_OFFSET_LIMITS[0], BOX_OFFSET_LIMITS[0]],
   [-BOX_OFFSET_LIMITS[1], BOX_OFFSET_LIMITS[1]],
-  [BOX_DISTANCE_MIN, BOX_DISTANCE_MAX],
+  [0, BOX_DISTANCE_MAX],
 ];
 
 const outputs = {
@@ -71,13 +75,24 @@ const spinButton = byId('spin');
 let spinning = false;
 let frameHandle = 0;
 
+function readHalfSizes() {
+  return sizeControls.map((input) => Number(input.value) / FULL_TO_HALF_SIZE_RATIO);
+}
+
+function limitDistanceToBoxSize() {
+  const distanceInput = positionControls[DISTANCE_AXIS];
+  const nearest = minBoxDistance(readHalfSizes());
+  distanceInput.min = nearest;
+  if (Number(distanceInput.value) < nearest) distanceInput.value = nearest;
+}
+
 function readState() {
   return {
     yaw: Number(controls.yaw.value),
     tilt: Number(controls.tilt.value),
     roll: Number(controls.roll.value),
     focal: Number(controls.focal.value),
-    halfSizes: sizeControls.map((input) => Number(input.value) / FULL_TO_HALF_SIZE_RATIO),
+    halfSizes: readHalfSizes(),
     position: positionControls.map((input) => Number(input.value)),
     lean: { away: Number(leanControls[0].value), right: Number(leanControls[1].value) },
   };
@@ -101,6 +116,7 @@ function resetPosition() {
 }
 
 function draw() {
+  limitDistanceToBoxSize();
   const state = readState();
   const scene = buildScene(state);
   state.halfSizes.forEach((half, axis) => {
@@ -167,6 +183,9 @@ positionControls.forEach((input, axis) => {
   [input.min, input.max] = positionLimits[axis];
   input.step = BOX_POSITION_STEP;
 });
+controls.focal.min = FOCAL_MIN;
+controls.focal.max = FOCAL_MAX;
+controls.focal.step = FOCAL_STEP;
 resetSizes();
 resetPosition();
 setLean(DEFAULT_BOX_LEAN);
