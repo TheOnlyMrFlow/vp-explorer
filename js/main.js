@@ -1,8 +1,15 @@
-import { buildScene } from './perspective.js';
+import {
+  BOX_HALF_SIZES,
+  BOX_SIZE_MAX,
+  BOX_SIZE_MIN,
+  BOX_SIZE_STEP,
+  buildScene,
+} from './perspective.js';
 import { renderOverview, renderPageView, renderReadout } from './render.js';
 
 const SPIN_STEP_DEGREES = 0.35;
 const YAW_MAX_DEGREES = 90;
+const FULL_TO_HALF_SIZE_RATIO = 2;
 
 const PRESETS = Object.freeze({
   'near-one-point': { yaw: 10, tilt: 0, focal: 4 },
@@ -18,6 +25,13 @@ const controls = {
   tilt: byId('tilt'),
   focal: byId('focal'),
 };
+
+const sizeControls = [byId('size-length'), byId('size-width'), byId('size-height')];
+const sizeOutputs = [
+  byId('size-length-out'),
+  byId('size-width-out'),
+  byId('size-height-out'),
+];
 
 const outputs = {
   yaw: byId('yaw-out'),
@@ -41,12 +55,22 @@ function readState() {
     yaw: Number(controls.yaw.value),
     tilt: Number(controls.tilt.value),
     focal: Number(controls.focal.value),
+    halfSizes: sizeControls.map((input) => Number(input.value) / FULL_TO_HALF_SIZE_RATIO),
   };
+}
+
+function resetSizes() {
+  sizeControls.forEach((input, axis) => {
+    input.value = BOX_HALF_SIZES[axis] * FULL_TO_HALF_SIZE_RATIO;
+  });
 }
 
 function draw() {
   const state = readState();
   const scene = buildScene(state);
+  state.halfSizes.forEach((half, axis) => {
+    sizeOutputs[axis].textContent = (half * FULL_TO_HALF_SIZE_RATIO).toFixed(1);
+  });
   outputs.yaw.textContent = `${Math.round(state.yaw)}°`;
   outputs.tilt.textContent = `${Math.round(state.tilt)}°`;
   outputs.focal.textContent = state.focal.toFixed(1);
@@ -87,7 +111,21 @@ function applyPreset(name) {
   draw();
 }
 
-Object.values(controls).forEach((input) => input.addEventListener('input', draw));
+sizeControls.forEach((input) => {
+  input.min = BOX_SIZE_MIN;
+  input.max = BOX_SIZE_MAX;
+  input.step = BOX_SIZE_STEP;
+});
+resetSizes();
+
+[...Object.values(controls), ...sizeControls].forEach((input) =>
+  input.addEventListener('input', draw),
+);
+
+byId('reset-size').addEventListener('click', () => {
+  resetSizes();
+  draw();
+});
 
 spinButton.addEventListener('click', () => (spinning ? stopSpin() : startSpin()));
 

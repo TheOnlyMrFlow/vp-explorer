@@ -34,6 +34,26 @@ test('rendered markup never contains NaN or undefined', () => {
   }
 });
 
+test('rendered markup stays clean for extreme box sizes', () => {
+  const sizes = [
+    [0.25, 0.25, 0.25],
+    [2, 2, 2],
+    [2, 0.25, 2],
+  ];
+  for (const state of states) {
+    for (const halfSizes of sizes) {
+      const scene = buildScene({ ...state, halfSizes });
+      for (const markup of [
+        renderPageView(scene),
+        renderOverview(scene),
+        renderReadout(scene),
+      ]) {
+        assert.ok(!/NaN|undefined|Infinity|-0\.0/.test(markup), JSON.stringify({ state, halfSizes }));
+      }
+    }
+  }
+});
+
 test('each view labels all three vanishing points', () => {
   for (const state of states) {
     const scene = buildScene(state);

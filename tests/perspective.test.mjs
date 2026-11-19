@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  BOX_SIZE_MAX,
+  BOX_SIZE_MIN,
   boxAxes,
+  boxVertices,
   buildScene,
   horizonY,
   VP_PAIRS,
@@ -124,6 +127,48 @@ test('a generic orientation shows three faces, three visible edges per axis grou
 test('a face-on box shows a single face', () => {
   const scene = buildScene({ yaw: 0, tilt: 0, focal: 4 });
   assert.equal(scene.faces.length, 1);
+});
+
+const sampleHalfSizes = [
+  [BOX_SIZE_MIN / 2, BOX_SIZE_MIN / 2, BOX_SIZE_MIN / 2],
+  [BOX_SIZE_MAX / 2, BOX_SIZE_MAX / 2, BOX_SIZE_MAX / 2],
+  [BOX_SIZE_MAX / 2, BOX_SIZE_MIN / 2, 1],
+  [0.3, 2, BOX_SIZE_MAX / 2],
+];
+
+test('box size does not move the vanishing points or the horizon', () => {
+  for (const state of sampleStates) {
+    const reference = buildScene(state);
+    for (const halfSizes of sampleHalfSizes) {
+      const resized = buildScene({ ...state, halfSizes });
+      assert.deepEqual(resized.vanishingPoints, reference.vanishingPoints);
+      assert.deepEqual(resized.horizon, reference.horizon);
+      assert.deepEqual(resized.dotProducts, reference.dotProducts);
+    }
+  }
+});
+
+test('box size changes the projected corners', () => {
+  const state = { yaw: 35, tilt: 25, focal: 4 };
+  const small = buildScene({ ...state, halfSizes: [0.5, 0.5, 0.5] });
+  const large = buildScene({ ...state, halfSizes: [2, 2, 2] });
+  assert.notDeepEqual(small.projected, large.projected);
+});
+
+test('every vertex stays in front of the camera at the largest box size', () => {
+  const halfSizes = Array(3).fill(BOX_SIZE_MAX / 2);
+  for (const { yaw, tilt } of sampleStates) {
+    const axes = boxAxes(yaw, tilt);
+    assert.ok(boxVertices(axes, halfSizes).every(([, , z]) => z > 0));
+  }
+});
+
+test('non-default sizes still show three faces and nine visible edges for a generic view', () => {
+  for (const halfSizes of sampleHalfSizes) {
+    const scene = buildScene({ yaw: 35, tilt: 25, focal: 4, halfSizes });
+    assert.equal(scene.faces.length, 3);
+    assert.equal(scene.edges.filter((edge) => edge.visible).length, 9);
+  }
 });
 
 test('vanishing point pairs cover every combination once', () => {

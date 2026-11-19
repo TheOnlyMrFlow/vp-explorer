@@ -41,6 +41,7 @@ Do not weaken a test to make a change pass. Change a test only when the model it
 - With tilt 0, the horizontal VPs straddle P and `x1 * x2 = -f²`.
 - The horizon height at x = 0 equals f·tan(tilt). The horizon height times the VP₃ height equals −f².
 - A generic orientation shows 3 faces and 9 visible edges. A face-on box shows 1 face.
+- Box size never moves the VPs, the horizon or the dot products. `buildScene` takes optional `halfSizes` (default `BOX_HALF_SIZES`); the sliders show full sizes in `BOX_SIZE_MIN` to `BOX_SIZE_MAX`, and every vertex stays in front of the camera at the maximum.
 - Rendered markup never contains `NaN`, `undefined` or `Infinity`, and never prints `-0.0`.
 
 ## Code rules
@@ -68,6 +69,5 @@ Start with analysis, not implementation. Read the relevant code, then propose an
 ## Known limitations and ideas
 
 - No camera roll and no free box rotation. Adding roll would tilt the horizon and move VP₃ off the vertical axis, so the horizon and altitude drawing code must be revisited.
-- Box proportions are fixed (`BOX_HALF_SIZES`).
 - The overview scale is fixed, so the VP triangle is small at wide angles.
 - Not yet tested on Safari or on phones.

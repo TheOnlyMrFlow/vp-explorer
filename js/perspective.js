@@ -1,4 +1,7 @@
 export const BOX_HALF_SIZES = Object.freeze([1.6, 1.2, 1.0]);
+export const BOX_SIZE_MIN = 0.5;
+export const BOX_SIZE_MAX = 4;
+export const BOX_SIZE_STEP = 0.1;
 export const BOX_DISTANCE = 7;
 export const INFINITY_EPSILON = 1e-3;
 export const VP_PAIRS = Object.freeze([
@@ -138,16 +141,19 @@ export function pairwiseDotProducts(points) {
   );
 }
 
-export function buildScene({ yaw, tilt, focal }) {
+export function buildScene({ yaw, tilt, focal, halfSizes = BOX_HALF_SIZES }) {
   const axes = boxAxes(yaw, tilt);
-  const visibility = faceVisibility(axes);
+  const visibility = faceVisibility(axes, halfSizes);
   const points = vanishingPoints(axes, focal);
   return {
     yaw,
     tilt,
     focal,
+    halfSizes,
     axes,
-    projected: boxVertices(axes).map((vertex) => projectPoint(vertex, focal)),
+    projected: boxVertices(axes, halfSizes).map((vertex) =>
+      projectPoint(vertex, focal),
+    ),
     vanishingPoints: points,
     faces: visibleFaces(visibility),
     edges: boxEdges(visibility),
