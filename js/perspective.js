@@ -4,6 +4,7 @@ export const BOX_SIZE_MAX = 4;
 export const BOX_SIZE_STEP = 0.1;
 export const BOX_DISTANCE = 7;
 export const INFINITY_EPSILON = 1e-3;
+export const YAW_PERIOD_DEGREES = 180;
 export const VP_PAIRS = Object.freeze([
   [0, 1],
   [0, 2],
@@ -18,6 +19,9 @@ const degreesToRadians = (degrees) => (degrees * Math.PI) / 180;
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const cornerSign = (vertexIndex, axis) => ((vertexIndex >> axis) & 1 ? 1 : -1);
 const faceIndex = (axis, sign) => axis * 2 + (sign > 0 ? 1 : 0);
+
+export const wrapYaw = (degrees) =>
+  ((degrees % YAW_PERIOD_DEGREES) + YAW_PERIOD_DEGREES) % YAW_PERIOD_DEGREES;
 
 export function boxAxes(yawDegrees, tiltDegrees, rollDegrees = 0) {
   const yaw = degreesToRadians(yawDegrees);

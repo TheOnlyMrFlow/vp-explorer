@@ -9,6 +9,8 @@ import {
   horizonOffset,
   horizonSegment,
   VP_PAIRS,
+  wrapYaw,
+  YAW_PERIOD_DEGREES,
 } from '../js/perspective.js';
 
 const TOLERANCE = 1e-6;
@@ -20,7 +22,7 @@ const closeTo = (actual, expected, message) =>
 
 const sampleStates = [];
 const sampleRolls = [-90, -40, 0, 30, 90];
-for (const yaw of [5, 20, 35, 55, 80]) {
+for (const yaw of [5, 35, 80, 100, 135, 170]) {
   for (const tilt of [-50, -20, 10, 30, 55]) {
     for (const roll of sampleRolls) {
       for (const focal of [2, 4, 7.5]) {
@@ -86,6 +88,36 @@ test('with a level view the horizontal vanishing points straddle P and satisfy x
       closeTo(v2.y, 0);
       assert.ok(v1.x * v2.x < 0);
       closeTo(v1.x * v2.x, -focal * focal);
+    }
+  }
+});
+
+test('wrapYaw keeps any angle inside one turn', () => {
+  closeTo(wrapYaw(180), 0);
+  closeTo(wrapYaw(180.35), 0.35);
+  closeTo(wrapYaw(-10), 170);
+  closeTo(wrapYaw(35), 35);
+});
+
+test('a half turn of yaw gives the same picture', () => {
+  const sortedCorners = (scene) =>
+    scene.projected.map(({ x, y }) => [x, y]).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  for (const tilt of [-30, 0, 40]) {
+    for (const yaw of [0, 35, 90, 133]) {
+      const start = buildScene({ yaw, tilt, roll: 20, focal: 4 });
+      const end = buildScene({ yaw: yaw + YAW_PERIOD_DEGREES, tilt, roll: 20, focal: 4 });
+      sortedCorners(start).forEach(([x, y], index) => {
+        closeTo(sortedCorners(end)[index][0], x);
+        closeTo(sortedCorners(end)[index][1], y);
+      });
+      start.vanishingPoints.forEach((point, axis) => {
+        const counterpart = end.vanishingPoints[axis];
+        assert.equal(counterpart === null, point === null);
+        if (!point) return;
+        closeTo(counterpart.x, point.x);
+        closeTo(counterpart.y, point.y);
+      });
+      assert.equal(end.faces.length, start.faces.length);
     }
   }
 });

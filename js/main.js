@@ -4,11 +4,11 @@ import {
   BOX_SIZE_MIN,
   BOX_SIZE_STEP,
   buildScene,
+  wrapYaw,
 } from './perspective.js';
 import { renderOverview, renderPageView, renderReadout } from './render.js';
 
 const SPIN_STEP_DEGREES = 0.35;
-const YAW_MAX_DEGREES = 90;
 const FULL_TO_HALF_SIZE_RATIO = 2;
 
 const PRESETS = Object.freeze({
@@ -93,8 +93,7 @@ function stopSpin() {
 
 function spinFrame() {
   if (!spinning) return;
-  const next = Number(controls.yaw.value) + SPIN_STEP_DEGREES;
-  controls.yaw.value = next > YAW_MAX_DEGREES ? 0 : next;
+  controls.yaw.value = wrapYaw(Number(controls.yaw.value) + SPIN_STEP_DEGREES);
   draw();
   frameHandle = requestAnimationFrame(spinFrame);
 }
