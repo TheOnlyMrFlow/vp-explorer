@@ -1,4 +1,4 @@
-import { horizonY, VP_PAIRS } from './perspective.js';
+import { horizonSegment, VP_PAIRS } from './perspective.js';
 
 export const AXIS_COLORS = Object.freeze(['#D85A30', '#1D9E75', '#7F77DD']);
 export const AXIS_NAMES = Object.freeze(['VP₁', 'VP₂', 'VP₃']);
@@ -96,11 +96,10 @@ export function vanishingMarker(axisIndex, scene, view) {
 }
 
 function horizonMarkup(scene, view) {
-  const left = horizonY(scene.horizon, -HORIZON_SPAN);
-  const right = horizonY(scene.horizon, HORIZON_SPAN);
-  if (left === null || right === null) return '';
-  const [x1, y1] = toPixel({ x: -HORIZON_SPAN, y: left }, view);
-  const [x2, y2] = toPixel({ x: HORIZON_SPAN, y: right }, view);
+  const segment = horizonSegment(scene.horizon, HORIZON_SPAN);
+  if (segment === null) return '';
+  const [x1, y1] = toPixel(segment[0], view);
+  const [x2, y2] = toPixel(segment[1], view);
   return `<line class="horizon" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
 }
 

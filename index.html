@@ -17,7 +17,7 @@
       <header>
         <h1>Three-point perspective: vanishing point explorer</h1>
         <p>
-          Rotate a box, tilt the view and change the focal length. The three
+          Rotate a box, look up or down, tilt your head and change the focal length. The three
           vanishing points are not independent: they move together, and the
           readout at the bottom shows the constraint that links them.
         </p>
@@ -33,6 +33,11 @@
           <label for="tilt">Look down / up</label>
           <input id="tilt" type="range" min="-60" max="60" step="1" value="25" />
           <output id="tilt-out" for="tilt"></output>
+        </div>
+        <div class="control-row">
+          <label for="roll">Head tilt (roll)</label>
+          <input id="roll" type="range" min="-90" max="90" step="1" value="0" />
+          <output id="roll-out" for="roll"></output>
         </div>
         <div class="control-row">
           <label for="focal">Focal length f</label>
@@ -61,6 +66,7 @@
           <button type="button" data-preset="two-point">2-point</button>
           <button type="button" data-preset="three-point">3-point</button>
           <button type="button" data-preset="wide-angle">Wide angle</button>
+          <button type="button" data-preset="dutch-angle">Dutch angle</button>
         </div>
         <ul class="legend">
           <li><span class="swatch swatch-1"></span>VP₁ (box length)</li>
@@ -103,6 +109,12 @@
             With the view level, the vertical vanishing point is at infinity
             and you get two-point perspective. Tilting the view brings it in,
             and the horizon moves away from P.
+          </li>
+          <li>
+            Tilting your head (roll) rotates the whole picture around P. The
+            horizon tilts and the vertical vanishing point leaves the vertical
+            line through P, but it stays on the line through P that is
+            perpendicular to the horizon, and every constraint above still holds.
           </li>
           <li>
             Resizing the box never moves the vanishing points. They depend only

@@ -12,10 +12,11 @@ const YAW_MAX_DEGREES = 90;
 const FULL_TO_HALF_SIZE_RATIO = 2;
 
 const PRESETS = Object.freeze({
-  'near-one-point': { yaw: 10, tilt: 0, focal: 4 },
-  'two-point': { yaw: 35, tilt: 0, focal: 4 },
-  'three-point': { yaw: 35, tilt: 35, focal: 4 },
-  'wide-angle': { yaw: 35, tilt: 25, focal: 2 },
+  'near-one-point': { yaw: 10, tilt: 0, roll: 0, focal: 4 },
+  'two-point': { yaw: 35, tilt: 0, roll: 0, focal: 4 },
+  'three-point': { yaw: 35, tilt: 35, roll: 0, focal: 4 },
+  'wide-angle': { yaw: 35, tilt: 25, roll: 0, focal: 2 },
+  'dutch-angle': { yaw: 35, tilt: 20, roll: 15, focal: 4 },
 });
 
 const byId = (id) => document.getElementById(id);
@@ -23,6 +24,7 @@ const byId = (id) => document.getElementById(id);
 const controls = {
   yaw: byId('yaw'),
   tilt: byId('tilt'),
+  roll: byId('roll'),
   focal: byId('focal'),
 };
 
@@ -36,6 +38,7 @@ const sizeOutputs = [
 const outputs = {
   yaw: byId('yaw-out'),
   tilt: byId('tilt-out'),
+  roll: byId('roll-out'),
   focal: byId('focal-out'),
 };
 
@@ -54,6 +57,7 @@ function readState() {
   return {
     yaw: Number(controls.yaw.value),
     tilt: Number(controls.tilt.value),
+    roll: Number(controls.roll.value),
     focal: Number(controls.focal.value),
     halfSizes: sizeControls.map((input) => Number(input.value) / FULL_TO_HALF_SIZE_RATIO),
   };
@@ -73,6 +77,7 @@ function draw() {
   });
   outputs.yaw.textContent = `${Math.round(state.yaw)}°`;
   outputs.tilt.textContent = `${Math.round(state.tilt)}°`;
+  outputs.roll.textContent = `${Math.round(state.roll)}°`;
   outputs.focal.textContent = state.focal.toFixed(1);
   targets.page.innerHTML = renderPageView(scene);
   targets.overview.innerHTML = renderOverview(scene);
@@ -107,6 +112,7 @@ function applyPreset(name) {
   stopSpin();
   controls.yaw.value = preset.yaw;
   controls.tilt.value = preset.tilt;
+  controls.roll.value = preset.roll;
   controls.focal.value = preset.focal;
   draw();
 }

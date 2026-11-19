@@ -6,7 +6,8 @@ import {
   boxAxes,
   boxVertices,
   buildScene,
-  horizonY,
+  horizonOffset,
+  horizonSegment,
   VP_PAIRS,
 } from '../js/perspective.js';
 
@@ -18,17 +19,30 @@ const closeTo = (actual, expected, message) =>
   );
 
 const sampleStates = [];
+const sampleRolls = [-90, -40, 0, 30, 90];
 for (const yaw of [5, 20, 35, 55, 80]) {
   for (const tilt of [-50, -20, 10, 30, 55]) {
-    for (const focal of [2, 4, 7.5]) {
-      sampleStates.push({ yaw, tilt, focal });
+    for (const roll of sampleRolls) {
+      for (const focal of [2, 4, 7.5]) {
+        sampleStates.push({ yaw, tilt, roll, focal });
+      }
     }
   }
 }
 
+const rotate = (point, degrees) => {
+  const angle = (degrees * Math.PI) / 180;
+  return {
+    x: point.x * Math.cos(angle) - point.y * Math.sin(angle),
+    y: point.x * Math.sin(angle) + point.y * Math.cos(angle),
+  };
+};
+const signedDistanceToHorizon = ({ a, b, c }, point) =>
+  (a * point.x + b * point.y + c) / Math.hypot(a, b);
+
 test('axes are orthonormal', () => {
-  for (const { yaw, tilt } of sampleStates) {
-    const axes = boxAxes(yaw, tilt);
+  for (const { yaw, tilt, roll } of sampleStates) {
+    const axes = boxAxes(yaw, tilt, roll);
     for (let i = 0; i < 3; i += 1) {
       for (let j = 0; j < 3; j += 1) {
         const dot = axes[i].reduce((sum, c, k) => sum + c * axes[j][k], 0);
@@ -90,31 +104,87 @@ test('at zero yaw and tilt the facing axis sits on P and the other horizontal ax
   closeTo(v2.y, 0);
 });
 
-test('horizon height at the center column equals f·tan(tilt)', () => {
+test('horizon sits f·tan(tilt) from P whatever the roll', () => {
   for (const tilt of [-40, -10, 15, 45]) {
-    for (const focal of [2, 5]) {
-      const { horizon } = buildScene({ yaw: 35, tilt, focal });
-      closeTo(horizonY(horizon, 0), focal * Math.tan((tilt * Math.PI) / 180));
+    for (const roll of sampleRolls) {
+      for (const focal of [2, 5]) {
+        const { horizon } = buildScene({ yaw: 35, tilt, roll, focal });
+        closeTo(horizonOffset(horizon), focal * Math.tan((tilt * Math.PI) / 180));
+      }
     }
   }
 });
 
 test('horizon passes through both horizontal vanishing points', () => {
-  const scene = buildScene({ yaw: 35, tilt: 25, focal: 4 });
-  for (const point of scene.vanishingPoints.slice(0, 2)) {
-    closeTo(horizonY(scene.horizon, point.x), point.y);
+  for (const roll of sampleRolls) {
+    const scene = buildScene({ yaw: 35, tilt: 25, roll, focal: 4 });
+    for (const point of scene.vanishingPoints.slice(0, 2)) {
+      closeTo(signedDistanceToHorizon(scene.horizon, point), 0, `roll ${roll}`);
+    }
   }
 });
 
-test('distance to horizon times distance to the vertical vanishing point equals f²', () => {
+test('distance to horizon times distance to the vertical vanishing point equals -f²', () => {
   for (const tilt of [-45, -20, 15, 40]) {
-    for (const focal of [2, 4, 6]) {
-      const scene = buildScene({ yaw: 35, tilt, focal });
-      const horizon = horizonY(scene.horizon, 0);
-      const vertical = scene.vanishingPoints[2].y;
-      closeTo(horizon * vertical, -focal * focal);
+    for (const roll of sampleRolls) {
+      for (const focal of [2, 4, 6]) {
+        const { horizon, vanishingPoints } = buildScene({ yaw: 35, tilt, roll, focal });
+        const norm = Math.hypot(horizon.a, horizon.b);
+        const vertical =
+          (vanishingPoints[2].x * horizon.a + vanishingPoints[2].y * horizon.b) / norm;
+        closeTo(horizonOffset(horizon) * vertical, -focal * focal);
+      }
     }
   }
+});
+
+test('rolling the camera rotates every vanishing point rigidly around P', () => {
+  for (const roll of sampleRolls) {
+    const level = buildScene({ yaw: 35, tilt: 25, focal: 4 });
+    const rolled = buildScene({ yaw: 35, tilt: 25, roll, focal: 4 });
+    level.vanishingPoints.forEach((point, axis) => {
+      const expected = rotate(point, roll);
+      closeTo(rolled.vanishingPoints[axis].x, expected.x, `roll ${roll} x`);
+      closeTo(rolled.vanishingPoints[axis].y, expected.y, `roll ${roll} y`);
+    });
+  }
+});
+
+test('the vertical vanishing point stays on the line through P perpendicular to the horizon', () => {
+  for (const roll of sampleRolls) {
+    const { horizon, vanishingPoints } = buildScene({ yaw: 35, tilt: 25, roll, focal: 4 });
+    const along = -horizon.b * vanishingPoints[2].x + horizon.a * vanishingPoints[2].y;
+    closeTo(along, 0, `roll ${roll}`);
+  }
+});
+
+test('the horizon follows the roll angle and is vertical at 90 degrees', () => {
+  for (const roll of [-60, -20, 0, 20, 60, 90]) {
+    const [start, end] = horizonSegment(
+      buildScene({ yaw: 35, tilt: 25, roll, focal: 4 }).horizon,
+      5,
+    );
+    const slope = (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI;
+    closeTo(Math.abs(Math.cos((slope - roll) * (Math.PI / 180))), 1, `roll ${roll}`);
+  }
+  const [start, end] = horizonSegment(
+    buildScene({ yaw: 35, tilt: 25, roll: 90, focal: 4 }).horizon,
+    5,
+  );
+  closeTo(start.x, end.x);
+});
+
+test('the horizon segment is centered on the point of the horizon nearest to P', () => {
+  const { horizon } = buildScene({ yaw: 35, tilt: 25, roll: 30, focal: 4 });
+  const [start, end] = horizonSegment(horizon, 7);
+  closeTo(Math.hypot(end.x - start.x, end.y - start.y), 14);
+  const middle = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+  closeTo(Math.hypot(middle.x, middle.y), Math.abs(horizonOffset(horizon)));
+});
+
+test('the horizon is at infinity when the camera looks straight along the vertical', () => {
+  assert.equal(horizonSegment({ a: 0, b: 0, c: 4 }, 5), null);
+  assert.equal(horizonOffset({ a: 0, b: 0, c: 4 }), null);
 });
 
 test('a generic orientation shows three faces, three visible edges per axis group and nine visible edges', () => {
@@ -157,8 +227,8 @@ test('box size changes the projected corners', () => {
 
 test('every vertex stays in front of the camera at the largest box size', () => {
   const halfSizes = Array(3).fill(BOX_SIZE_MAX / 2);
-  for (const { yaw, tilt } of sampleStates) {
-    const axes = boxAxes(yaw, tilt);
+  for (const { yaw, tilt, roll } of sampleStates) {
+    const axes = boxAxes(yaw, tilt, roll);
     assert.ok(boxVertices(axes, halfSizes).every(([, , z]) => z > 0));
   }
 });

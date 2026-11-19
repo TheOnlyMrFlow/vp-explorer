@@ -19,24 +19,32 @@ const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const cornerSign = (vertexIndex, axis) => ((vertexIndex >> axis) & 1 ? 1 : -1);
 const faceIndex = (axis, sign) => axis * 2 + (sign > 0 ? 1 : 0);
 
-export function boxAxes(yawDegrees, tiltDegrees) {
+export function boxAxes(yawDegrees, tiltDegrees, rollDegrees = 0) {
   const yaw = degreesToRadians(yawDegrees);
   const tilt = degreesToRadians(tiltDegrees);
+  const roll = degreesToRadians(rollDegrees);
   const cosYaw = Math.cos(yaw);
   const sinYaw = Math.sin(yaw);
   const cosTilt = Math.cos(tilt);
   const sinTilt = Math.sin(tilt);
+  const cosRoll = Math.cos(roll);
+  const sinRoll = Math.sin(roll);
   const worldAxes = [
     [cosYaw, 0, sinYaw],
     [-sinYaw, 0, cosYaw],
     [0, 1, 0],
   ];
-  const toCamera = ([x, y, z]) => [
+  const tiltAxis = ([x, y, z]) => [
     x,
     y * cosTilt + z * sinTilt,
     -y * sinTilt + z * cosTilt,
   ];
-  return worldAxes.map(toCamera);
+  const rollAxis = ([x, y, z]) => [
+    x * cosRoll - y * sinRoll,
+    x * sinRoll + y * cosRoll,
+    z,
+  ];
+  return worldAxes.map((axis) => rollAxis(tiltAxis(axis)));
 }
 
 export function boxVertices(
@@ -128,9 +136,22 @@ export function horizonLine(axes, focal) {
   return { a, b, c: z * focal };
 }
 
-export function horizonY(line, x) {
-  if (Math.abs(line.b) < HORIZON_EPSILON) return null;
-  return -(line.a * x + line.c) / line.b;
+export function horizonOffset(line) {
+  const norm = Math.hypot(line.a, line.b);
+  return norm < HORIZON_EPSILON ? null : -line.c / norm;
+}
+
+export function horizonSegment(line, halfLength) {
+  const offset = horizonOffset(line);
+  if (offset === null) return null;
+  const norm = Math.hypot(line.a, line.b);
+  const normal = { x: line.a / norm, y: line.b / norm };
+  const foot = { x: normal.x * offset, y: normal.y * offset };
+  const direction = { x: -normal.y, y: normal.x };
+  return [
+    { x: foot.x - direction.x * halfLength, y: foot.y - direction.y * halfLength },
+    { x: foot.x + direction.x * halfLength, y: foot.y + direction.y * halfLength },
+  ];
 }
 
 export function pairwiseDotProducts(points) {
@@ -141,13 +162,14 @@ export function pairwiseDotProducts(points) {
   );
 }
 
-export function buildScene({ yaw, tilt, focal, halfSizes = BOX_HALF_SIZES }) {
-  const axes = boxAxes(yaw, tilt);
+export function buildScene({ yaw, tilt, roll = 0, focal, halfSizes = BOX_HALF_SIZES }) {
+  const axes = boxAxes(yaw, tilt, roll);
   const visibility = faceVisibility(axes, halfSizes);
   const points = vanishingPoints(axes, focal);
   return {
     yaw,
     tilt,
+    roll,
     focal,
     halfSizes,
     axes,
